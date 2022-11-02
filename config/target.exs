@@ -8,7 +8,30 @@ config :shoehorn,
   init: [:nerves_runtime, :nerves_pack],
   app: Mix.Project.config()[:app]
 
+config :logger,
+  backends: [
+    {LoggerFileBackend, :info_log},
+    {LoggerFileBackend, :error_log},
+    RingLogger,
+    RamoopsLogger
+  ],
+  level: :info
+
+config :logger, :info_log,
+  path: "/root/info.log",
+  level: :info
+
+config :logger, :error_log,
+  path: "/root/error.log",
+  level: :error
+
+config :nerves, :erlinit, shutdown_report: "/data/last_shutdown.txt"
+
 config :nerves_runtime, :kernel, use_system_registry: false
+
+config :nerves, :erlinit, shutdown_report: "/data/last_shutdown.txt"
+
+config :nerves, rpi_v2_ack: true
 
 keys =
   [
@@ -31,11 +54,17 @@ config :nerves_ssh,
 config :vintage_net,
   regulatory_domain: "US",
   config: [
-    {"usb0", %{type: VintageNetDirect}}
-  ]
+    {"usb0", %{type: VintageNetDirect}},
+    {"wlan0", %{type: VintageNetWifi}}
+  ],
+  additional_name_servers: [{127, 0, 0, 53}]
 
 config :mdns_lite,
-  host: [:hostname, "lights"],
+  instance_name: "Nerves",
+  dns_bridge_enabled: true,
+  dns_bridge_port: 53,
+  dns_bridge_recursive: false,
+  hosts: [:hostname, "temp_sensor"],
   ttl: 120,
   services: [
     %{
@@ -44,6 +73,7 @@ config :mdns_lite,
       transport: "tcp",
       port: 22
     },
+    %{protocol: "sftp-ssh", transport: "tcp", port: 22},
     %{
       name: "Web Server",
       protocol: "http",

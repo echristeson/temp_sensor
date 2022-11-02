@@ -19,20 +19,39 @@ config :nerves, :firmware,
 
 config :nerves, source_date_epoch: "1585625975"
 
-config :nerves, rpi_v2_ack: true
+config :phoenix, :json_library, Jason
 
-config :logger,
-  backends: [{LoggerFileBackend, :info_log}, {LoggerFileBackend, :error_log}, RingLogger],
-  level: :info
+config :mime, :types, %{
+  "text/plain" => ["livemd"]
+}
 
-config :logger, :info_log,
-  path: "/root/info.log",
-  level: :info
+config :livebook, :storage, Livebook.Storage.Ets
 
-config :logger, :error_log,
-  path: "/root/error.log",
-  level: :error
+config :livebook, LivebookWeb.Endpoint,
+  pubsub_server: Livebook.PubSub,
+  live_view: [signing_salt: "livebook"]
 
-if Mix.target() != :host do
+# Enable the embedded runtime which isn't available by default
+config :livebook,
+  default_runtime: {Livebook.Runtime.Embedded, []},
+  authentication_mode: :password,
+  token_authentication: false,
+  password: System.get_env("LIVEBOOK_PASSWORD", "nerves"),
+  cookie: :nerves_livebook_cookie
+
+  config :livebook, LivebookWeb.Endpoint,
+    url: [host: "nerves.local"],
+    http: [
+      port: "80",
+      transport_options: [socket_opts: [:inet6]]
+    ],
+    code_reloader: false,
+    server: true,
+    secret_key_base: ""
+
+
+if Mix.target() == :host do
+  import_config "host.exs"
+else
   import_config "target.exs"
 end

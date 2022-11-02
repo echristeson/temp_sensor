@@ -11,11 +11,11 @@ defmodule TempSensor.MixProject do
       version: @version,
       elixir: "~> 1.13",
       archives: [nerves_bootstrap: "~> 1.10"],
-      start_permanent: Mix.env == :prod,
-      build_embedded: true,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
       releases: [{@app, release()}],
-      preferred_cli_target: [run: :host, test: :host]
+      preferred_cli_target: [run: :host, test: :host, "phx.server": :host],
+      dialyzer: dialyzer()
     ]
   end
 
@@ -23,50 +23,61 @@ defmodule TempSensor.MixProject do
   def application do
     [
       mod: {TempSensor.Application, []},
-      extra_applications: [:logger, :runtime_tools]
-    ]
-  end
-
-  # Specify target specific application configurations
-  # It is common that the application start function will start and supervise
-  # applications which could cause the host to fail. Because of this, we only
-  # invoke TempSensor.start/2 when running on a target.
-  def application("host") do
-    [extra_applications: [:logger]]
-  end
-
-  def application(_target) do
-    [
-      mod: {TempSensor.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :inets, :ex_unit]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:nerves, "~> 1.7", runtime: false},
-      {:shoehorn, "~> 0.7"},
+      {:nerves, "~> 1.9", runtime: false},
+      {:shoehorn, "~> 0.9"},
       {:toolshed, "~> 0.2"},
       {:ring_logger, "~> 0.8"},
       {:logger_file_backend, "~> 0.0.12"},
-      {:nerves_runtime, "~> 0.11.4", targets: @all_targets},
-      {:nerves_pack, "~> 0.6.0", targets: @all_targets},
-      {:busybox, "~> 0.1.5", targets: @all_targets},
+      {:jason, "~>1.2"},
+      {:nerves_runtime, "~> 0.13"},
+      {:livebook, "~> 0.7"},
+      {:plug, "~>  1.12"},
+      {:vintage_net, "~> 0.12"},
 
-      # Dependencies for specific targets
+      # Libraries
+      {:input_event, "~> 1.0 or ~> 0.4", targets: @all_targets},
+      {:kino, "~> 0.7"},
+      {:kino_maplibre, "~> 0.1.0"},
+      {:kino_vega_lite, "~> 0.1.1"},
+      {:maplibre, "~> 0.1.0"},
+      {:nerves_pack, "~> 0.7.0", targets: @all_targets},
+      {:nerves_time_zones, "~> 0.2", targets: @all_targets},
+      {:phoenix_pubsub, "~> 2.0"},
+      {:ramoops_logger, "~> 0.1", targets: @all_targets},
+      {:req, "~> 0.3.0"},
+      {:vega_lite, "~> 0.1"},
+      # {:busybox, "~> 0.1.5", targets: @all_targets},
+
+      # Nerves system dependencies
       {:nerves_system_rpi0, "~> 1.18", runtime: false, targets: :rpi0},
       {:nerves_system_rpi3a, "~> 1.18", runtime: false, targets: :rpi3a},
+
+      # Compile-time only
+      {:credo, "~> 1.6", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.2.0", only: :dev, runtime: false}
     ]
   end
 
   def release do
     [
       overwrite: true,
-      cookie: "#{@app}_cookie",
       include_erts: &Nerves.Release.erts/0,
       steps: [&Nerves.Release.init/1, :assemble],
-      strip_beams: Mix.env() == :prod or [keep: ["Docs"]]
+      strip_beams: [keep: ["Docs"]]
+    ]
+  end
+
+  defp dialyzer() do
+    [
+      flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
+      ignore_warnings: ".dialyzer_ignore.exs"
     ]
   end
 end

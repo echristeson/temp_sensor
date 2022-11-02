@@ -21,5 +21,8 @@ rel/*
 !rel/config.exs
 !rel/vm.args
 
+/.idea/
 /.elixir_ls/
+*.iml
 wifi-export.sh
+

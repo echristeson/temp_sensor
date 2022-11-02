@@ -8,9 +8,7 @@ defmodule TempSensor.Application do
   require Logger
 
   def start(_type, _args) do
-    if target() != :host do
-      setup_wifi()
-    end
+    setup_wifi()
 
     opts = [strategy: :one_for_one, name: TempSensor.Supervisor]
 
@@ -19,36 +17,36 @@ defmodule TempSensor.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp setup_wifi() do
-    kv = Nerves.Runtime.KV.get_all()
+  if Mix.target() == :host do
+    defp setup_wifi(), do: :ok
+  else
+    defp setup_wifi() do
+      kv = Nerves.Runtime.KV.get_all()
 
-    if true?(kv["wifi_force"]) or wlan0_unconfigured?() do
-      ssid = kv["wifi_ssid"]
-      passphrase = kv["wifi_passphrase"]
+      if true?(kv["wifi_force"]) or wlan0_unconfigured?() do
+        ssid = kv["wifi_ssid"]
+        passphrase = kv["wifi_passphrase"]
 
-      unless empty?(ssid) do
-        _ = VintageNetWiFi.quick_configure(ssid, passphrase)
-        :ok
+        unless empty?(ssid) do
+          _ = VintageNetWiFi.quick_configure(ssid, passphrase)
+          :ok
+        end
       end
     end
-  end
 
-  defp wlan0_unconfigured?() do
-    "wlan0" in VintageNet.configured_interfaces() and
-      VintageNet.get_configuration("wlan0") == %{type: VintageNetWiFi}
-  end
+    defp wlan0_unconfigured?() do
+      "wlan0" in VintageNet.configured_interfaces() and
+        VintageNet.get_configuration("wlan0") == %{type: VintageNetWiFi}
+    end
 
-  defp true?(""), do: false
-  defp true?(nil), do: false
-  defp true?("false"), do: false
-  defp true?("FALSE"), do: false
-  defp true?(_), do: true
+    defp true?(""), do: false
+    defp true?(nil), do: false
+    defp true?("false"), do: false
+    defp true?("FALSE"), do: false
+    defp true?(_), do: true
 
-  defp empty?(""), do: true
-  defp empty?(nil), do: true
-  defp empty?(_), do: false
-
-  def target() do
-    Application.get_env(:fw, :target)
+    defp empty?(""), do: true
+    defp empty?(nil), do: true
+    defp empty?(_), do: false
   end
 end
